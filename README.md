@@ -1,3 +1,7 @@
+## My modifications
+
+[I](https://github.com/Photosounder) changed some defaults, removed a pointless checkbox but more importantly I made seeds iterate correctly when using Batch Count, although while that's reflected in the file name it's not in the data saved inside the file.
+
 ## Batch Face Swap extension for https://github.com/AUTOMATIC1111/stable-diffusion-webui
  Automaticaly detects faces and replaces them.
  

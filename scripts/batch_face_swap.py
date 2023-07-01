@@ -236,7 +236,7 @@ def faceDebug(p, masks, image, finishedImages, invertMask, forced_filename, outp
 
     debugsave(overlay_image)
 
-def faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, output_path, info, selectedTab,mainTab, geninfo, faces_info, rotation_threshold, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height):
+def faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, output_path, info, selectedTab,mainTab, geninfo, faces_info, rotation_threshold, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height):
 
     bfs_prompt = bfs_prompt if overridePrompt else p.prompt
     bfs_nprompt = bfs_nprompt if overridePrompt else p.negative_prompt
@@ -246,7 +246,7 @@ def faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, outpu
     sd_sampler = sd_sampler if overrideSampler else p.sampler_name
     batch_size = 1 if mainTab == "txt2img" else p.batch_size
     n_iter = 1 if mainTab == "txt2img" else p.n_iter
-    denoising_strength = 0.5 if overrideDenoising else denoising_strength
+    denoising_strength = denoising_strength
     seed = int(random.randrange(4294967294)) if overrideSeed else p.seed
     steps = steps if overrideSteps else p.steps
     cfg_scale = cfg_scale if overrideCfgScale else p.cfg_scale
@@ -382,7 +382,7 @@ def faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, outpu
 
     return finishedImages
 
-def generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResults, divider, howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab,mainTab, loadGenParams, rotation_threshold):
+def generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResults, divider, howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab,mainTab, loadGenParams, rotation_threshold):
     suffix = ''
     info = infotext(p)
     if selectedTab == "generateMasksTab":
@@ -424,7 +424,11 @@ def generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResult
             print(f"\nWill process {len(allFiles)} images, generating {p.n_iter * p.batch_size} new images for each.")
             state.job_count = len(allFiles) * p.n_iter
 
+        starting_seed = p.seed
+
         for i, file in enumerate(allFiles):
+            p.seed = starting_seed + i
+
             if usingFilenames and keepOriginalName:
                 forced_filename = os.path.splitext(os.path.basename(file))[0]
             else:
@@ -498,13 +502,15 @@ def generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResult
                 continue
 
             if not onlyMask:
-                finishedImages = faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, output_path, info, selectedTab, mainTab, geninfo, faces_info, rotation_threshold, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height,)
+                finishedImages = faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, output_path, info, selectedTab, mainTab, geninfo, faces_info, rotation_threshold, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height,)
 
             if usingFilenames and not viewResults:
                 finishedImages = []
 
         if wasCountFaces == True:
             countFaces = True
+
+        p.seed = starting_seed
 
         timing = time.thread_time() - start_time
         print(f"Found {totalNumberOfFaces} faces in {len(allFiles)} images in {timing} seconds.")
@@ -543,7 +549,7 @@ def generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResult
                     continue
 
 
-                finishedImages = faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, output_pathExisting, info, selectedTab, mainTab, faces_info, rotation_threshold, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height,)
+                finishedImages = faceSwap(p, masks, image, finishedImages, invertMask, forced_filename, output_pathExisting, info, selectedTab, mainTab, faces_info, rotation_threshold, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height,)
 
                 if not viewResults:
                     finishedImages = []
@@ -722,7 +728,7 @@ class Script(scripts.Script):
                         with gr.Row():
                             with gr.Column():
                                 with gr.Column(variant='panel', scale=2):
-                                    overrideSeed = gr.Checkbox(value=True, label="""Override "Seed" to random""", interactive=True)
+                                    overrideSeed = gr.Checkbox(value=False, label="""Override "Seed" to random""", interactive=True)
                                 with gr.Column(variant='panel'):
                                     overrideSampler = gr.Checkbox(value=False, label="""Override "Sampling method" """)
                                     with gr.Column(visible=False) as override_sampler_col:
@@ -733,14 +739,12 @@ class Script(scripts.Script):
                                     with gr.Column(visible=False) as override_steps_col:
                                         steps = gr.Slider(minimum=1, maximum=150, step=1 , value=30, label="Sampling Steps", interactive=True)
                                 with gr.Column(variant='panel'):
-                                    overrideDenoising = gr.Checkbox(value=True, label="""Override "Denoising strength" to 0.5""")
-                                    with gr.Column(visible=False) as override_denoising_col:
-                                        denoising_strength = gr.Slider(minimum=0, maximum=1, step=0.01 , value=0.5, label="Denoising Strength", interactive=True)
+                                    denoising_strength = gr.Slider(minimum=0, maximum=1, step=0.01 , value=0.3, label="Denoising Strength", interactive=True)
 
                             with gr.Column():
                                 with gr.Column(variant='panel', scale=2):
-                                    overrideSize = gr.Checkbox(value=False, label="""Override "Resolution" """, interactive=True)
-                                    with gr.Column(visible=False) as override_size_col:
+                                    overrideSize = gr.Checkbox(value=True, label="""Override "Resolution" """, interactive=True)
+                                    with gr.Column(visible=True) as override_size_col:
                                         with gr.Row():
                                             bfs_width = gr.Slider(minimum=64, maximum=2048, step=4 , value=512, label="Width", interactive=True)
                                             bfs_height = gr.Slider(minimum=64, maximum=2048, step=4 , value=512, label="Height", interactive=True)
@@ -756,7 +760,7 @@ class Script(scripts.Script):
                                     with gr.Column(visible=False) as override_cfg_col:
                                         cfg_scale = gr.Slider(minimum=1, maximum=30, step=1 , value=6, label="CFG Scale", interactive=True)
                                 with gr.Column(variant='panel'):
-                                    overrideMaskBlur = gr.Checkbox(value=True, label="""Override "Mask blur" to automatic""")
+                                    overrideMaskBlur = gr.Checkbox(value=False, label="""Override "Mask blur" to automatic""")
                                     with gr.Column(visible=False) as override_maskBlur_col:
                                         mask_blur = gr.Slider(minimum=0, maximum=64, step=1  , value=4, label="Mask Blur", interactive=True)
             
@@ -894,7 +898,7 @@ class Script(scripts.Script):
                 loadGenParams.change(fn=None, _js="gradioApp().getElementById('mode_img2img').querySelectorAll('button')[4].click()", inputs=None, outputs=None)
 
 
-                def regen(input_path: str, searchSubdir: bool, viewResults: bool, divider: int, howSplit: str, saveMask: bool, output_path: str, saveToOriginalFolder: bool, onlyMask: bool, saveNoFace: bool, overridePrompt: bool, bfs_prompt: str, bfs_nprompt: str, overrideSampler: bool, sd_sampler: str, overrideModel: bool, sd_model: str, overrideDenoising: bool, denoising_strength: float, overrideMaskBlur: bool, mask_blur: float, overridePadding: bool, inpaint_full_res_padding: float, overrideSeed: bool, overrideSteps: bool, steps: float, overrideCfgScale: bool, cfg_scale: float, overrideSize: bool, bfs_width: float, bfs_height: float, invertMask: bool, singleMaskPerImage: bool, countFaces: bool, maskWidth: float, maskHeight: float, keepOriginalName: bool, pathExisting: str, pathMasksExisting: str, output_pathExisting: str, selectedTab: str, mainTab: str, loadGenParams: bool, rotation_threshold: float, faceDetectMode: str, face_x_scale: float, face_y_scale: float, minFace: float, multiScale: float, multiScale2: float, multiScale3: float, minNeighbors: float, mpconfidence: float, mpcount: float, debugSave: bool, optimizeDetect: bool):
+                def regen(input_path: str, searchSubdir: bool, viewResults: bool, divider: int, howSplit: str, saveMask: bool, output_path: str, saveToOriginalFolder: bool, onlyMask: bool, saveNoFace: bool, overridePrompt: bool, bfs_prompt: str, bfs_nprompt: str, overrideSampler: bool, sd_sampler: str, overrideModel: bool, sd_model: str, denoising_strength: float, overrideMaskBlur: bool, mask_blur: float, overridePadding: bool, inpaint_full_res_padding: float, overrideSeed: bool, overrideSteps: bool, steps: float, overrideCfgScale: bool, cfg_scale: float, overrideSize: bool, bfs_width: float, bfs_height: float, invertMask: bool, singleMaskPerImage: bool, countFaces: bool, maskWidth: float, maskHeight: float, keepOriginalName: bool, pathExisting: str, pathMasksExisting: str, output_pathExisting: str, selectedTab: str, mainTab: str, loadGenParams: bool, rotation_threshold: float, faceDetectMode: str, face_x_scale: float, face_y_scale: float, minFace: float, multiScale: float, multiScale2: float, multiScale3: float, minNeighbors: float, mpconfidence: float, mpcount: float, debugSave: bool, optimizeDetect: bool):
                     try:
                         p=original_p
                         image = input_image
@@ -904,9 +908,9 @@ class Script(scripts.Script):
 
                     facecfg = FaceDetectConfig(faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect)
 
-                    finishedImages = generateImages(p, facecfg, image, input_path, searchSubdir, viewResults, int(divider), howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold)
+                    finishedImages = generateImages(p, facecfg, image, input_path, searchSubdir, viewResults, int(divider), howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold)
 
-                regen_btn.click(fn=regen, inputs=[input_path, searchSubdir, viewResults, divider, howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect], outputs=None)
+                regen_btn.click(fn=regen, inputs=[input_path, searchSubdir, viewResults, divider, howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect], outputs=None)
                 
                 enabled.change(switchEnableLabel, enabled, enabled)
                 
@@ -930,7 +934,6 @@ class Script(scripts.Script):
                 overrideCfgScale.change(switchColumnVisibility, overrideCfgScale, override_cfg_col)
                 overrideSampler.change(switchColumnVisibility, overrideSampler, override_sampler_col)
                 overrideModel.change(switchColumnVisibility, overrideModel, override_model_col)
-                overrideDenoising.change(switchColumnVisibilityInverted, overrideDenoising, override_denoising_col)
                 overrideMaskBlur.change(switchColumnVisibilityInverted, overrideMaskBlur, override_maskBlur_col)
                 overridePadding.change(switchColumnVisibilityInverted, overridePadding, override_padding_col)
 
@@ -941,9 +944,9 @@ class Script(scripts.Script):
                 showTips.change(switchTipsVisibility, showTips, htmlTip5)
                 showTips.change(switchTipsVisibility, showTips, htmlTip6)
 
-        return [enabled, mainTab, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, input_path, searchSubdir, divider, howSplit, saveMask, output_path, saveToOriginalFolder, viewResults, saveNoFace, onlyMask, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect, loadGenParams, rotation_threshold]
+        return [enabled, mainTab, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, input_path, searchSubdir, divider, howSplit, saveMask, output_path, saveToOriginalFolder, viewResults, saveNoFace, onlyMask, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect, loadGenParams, rotation_threshold]
 
-    def process(self, p, enabled, mainTab, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, input_path, searchSubdir, divider, howSplit, saveMask, output_path, saveToOriginalFolder, viewResults, saveNoFace, onlyMask, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect, loadGenParams, rotation_threshold):
+    def process(self, p, enabled, mainTab, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, input_path, searchSubdir, divider, howSplit, saveMask, output_path, saveToOriginalFolder, viewResults, saveNoFace, onlyMask, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect, loadGenParams, rotation_threshold):
         
         global original_p
         global all_images
@@ -962,7 +965,7 @@ class Script(scripts.Script):
             else:
                 input_image = None
 
-            finishedImages = generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResults, int(divider), howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold)
+            finishedImages = generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResults, int(divider), howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold)
 
             if not viewResults:
                 finishedImages = []
@@ -981,7 +984,7 @@ class Script(scripts.Script):
         else:
             pass
 
-    def postprocess(self, p, processed, enabled, mainTab, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, input_path, searchSubdir, divider, howSplit, saveMask, output_path, saveToOriginalFolder, viewResults, saveNoFace, onlyMask, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect, loadGenParams, rotation_threshold):
+    def postprocess(self, p, processed, enabled, mainTab, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, input_path, searchSubdir, divider, howSplit, saveMask, output_path, saveToOriginalFolder, viewResults, saveNoFace, onlyMask, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect, loadGenParams, rotation_threshold):
 
         global all_images
         global input_image
@@ -1001,7 +1004,7 @@ class Script(scripts.Script):
             facecfg = FaceDetectConfig(faceDetectMode, face_x_scale, face_y_scale, minFace, multiScale, multiScale2, multiScale3, minNeighbors, mpconfidence, mpcount, debugSave, optimizeDetect)
 
 
-            finishedImages = generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResults, int(divider), howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, overrideDenoising, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold)
+            finishedImages = generateImages(p, facecfg, input_image, input_path, searchSubdir, viewResults, int(divider), howSplit, saveMask, output_path, saveToOriginalFolder, onlyMask, saveNoFace, overridePrompt, bfs_prompt, bfs_nprompt, overrideSampler, sd_sampler, overrideModel, sd_model, denoising_strength, overrideMaskBlur, mask_blur, overridePadding, inpaint_full_res_padding, overrideSeed, overrideSteps, steps, overrideCfgScale, cfg_scale, overrideSize, bfs_width, bfs_height, invertMask, singleMaskPerImage, countFaces, maskWidth, maskHeight, keepOriginalName, pathExisting, pathMasksExisting, output_pathExisting, selectedTab, mainTab, loadGenParams, rotation_threshold)
 
             if not viewResults:
                 finishedImages = []
